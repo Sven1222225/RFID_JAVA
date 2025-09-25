@@ -5,19 +5,23 @@ import java.util.HashMap;
 
 public class RFID {
     private HashMap<String, String> rawHead;
-    private HashMap<Integer, String> rawData;
-    private static String[] HEAD_SIGNATURE = {"Card UID", "Card SAK", "PICC type", "Sector Block"};
+    private HashMap<String, String> rawData;
+    private String lastSector;
+    private int blockCount;
+    private static String[] HEAD_SIGNATURE = {"Card UID", "Card SAK", "PICC type"};
 
     public RFID(){
         this.rawHead = new HashMap<String, String>();
-        this.rawData = new HashMap<Integer, String>();
+        this.rawData = new HashMap<String, String>();
+        this.lastSector = null;
+        this.blockCount = 0;
     }
 
     public HashMap<String, String> getRawHead() {
         return rawHead;
     }
 
-    public HashMap<Integer, String> getRawData() {
+    public HashMap<String, String> getRawData() {
         return rawData;
     }
 
@@ -33,23 +37,39 @@ public class RFID {
         return this.rawHead.get("PICC type");
     }
 
-    public String getSectorBlock(){
-        return this.rawHead.get("Sector Block");
-    }
-
-    public String getSectorData(int dataIndex){
+    public String getSectorData(int sector){
         String ret = null;
 
-        if(this.rawData.containsKey(dataIndex)){
-            ret = this.rawData.get(dataIndex);
+        for(int i = 0; i < 4; i++){
+            String key = String.valueOf(sector) + i;
+            if(this.rawData.containsKey(key)){
+                ret += this.rawData.get(key) + " ";
+            }else{
+                ret = null;
+                break;
+            }
+        }
+
+        // Cleanup trailing space
+        if(ret != null){
+            ret = ret.trim();
+        }
+
+        return ret;
+    }
+
+    public String getSectorData(int sector, int block){
+        String ret = null;
+        String key = String.valueOf(sector) + String.valueOf(block);
+
+        if(this.rawData.containsKey(key)){
+            ret = this.rawData.get(key);
         }
 
         return ret;
     }
 
     public void addRawData(String data) {
-        data = data.trim();
-
         for(String headSig : HEAD_SIGNATURE){
             if(data.startsWith(headSig)){
                 this.rawHead.put(headSig, data.replace(headSig, "").trim());
@@ -57,17 +77,24 @@ public class RFID {
             }
         }
 
-        java.util.regex.Matcher matcher = java.util.regex.Pattern.compile("^\\s*(\\d+)").matcher(data);
+        java.util.regex.Matcher matcher = java.util.regex.Pattern.compile("^\\s{2,3}(\\d+)").matcher(data);
 
         if (matcher.find()) {
-            Integer sector = Integer.parseInt(matcher.group(1));
-            this.rawData.put(sector, data.replace("^\\s*\\d+\\s*\\d+", "").trim());
+            lastSector = matcher.group(1);
+            blockCount = 0;
+        }
+
+        if(lastSector != null){
+            this.rawData.put(lastSector + blockCount, data.replace("^\\s*\\d+\\s*\\d+", "").trim());
+            ++this.blockCount;
         }
     }
 
     public void clear(){
         this.rawHead.clear();
         this.rawData.clear();
+        this.lastSector = null;
+        this.blockCount = 0;
     }
 }
 

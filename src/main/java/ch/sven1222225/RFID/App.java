@@ -37,16 +37,16 @@ public class App
         while (running) {
             if (rawData.hasNextLine()) {
                 String line = rawData.nextLine();
+                System.out.println("Arduino: " + line);
 
                 // End Data
                 if(isInDataBlock && line.startsWith("#End Data")){
                     isInDataBlock = false;
+                    displayData(rfid);
                 }
 
                 // Save Data
-                if(isInDataBlock)
-                {
-                    System.out.println("Arduino: " + line);
+                if(isInDataBlock) {
                     rfid.addRawData(line);
                 }
 
@@ -75,8 +75,12 @@ public class App
         System.out.println("Port closed.");
     }
 
-    private static void displayData(){
-
+    private static void displayData(RFID rfid){
+        System.out.println("Begin Debug Output");
+        System.out.println("Card UID: " + rfid.getCradUID());
+        System.out.println("Card SAK: " + rfid.getCradSAK());
+        System.out.println("PICC type: " + rfid.getPICCType());
+        System.out.println("Sector Block");
     }
 }
 
